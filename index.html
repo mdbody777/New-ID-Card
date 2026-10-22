@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dina Mahmoud Ahmed Metwally - Identity Card</title>
+    
+    <style>
+        /* ==========================================================================
+           1. CSS VARIABLES (Colors, Sizes, and Spacing)
+           ========================================================================== */
+        :root {
+            /* Physical dimensions for print and aspect ratio for screen */
+            --card-width-physical: 85.6mm;
+            --card-height-physical: 54mm;
+            --card-radius-physical: 3.18mm;
+            
+            /* Color Palette */
+            --color-metallic-blue-light: #3b6b9e;
+            --color-metallic-blue-dark: #19335A;
+            --color-accent-dark: #09172B;
+            --color-accent-beige: #E6D8C3;
+            --color-text-white: #FFFFFF;
+            --color-text-muted: #B3C2D4;
+            --color-bg-page: #F4F1EA;
+            
+            /* Typography */
+            --font-main: 'Inter', system-ui, -apple-system, sans-serif;
+            
+            /* Spacing (using container query inline units to scale perfectly) */
+            --spacing-sm: 1.5cqi;
+            --spacing-md: 3cqi;
+            --spacing-lg: 5cqi;
+        }
+
+        /* ==========================================================================
+           2. BASE RESETS & TYPOGRAPHY
+           ========================================================================== */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--color-bg-page);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: var(--color-text-white);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Accessibility: Visible focus outline for keyboard navigation */
+        a:focus-visible, button:focus-visible {
+            outline: 3px solid var(--color-accent-beige);
+            outline-offset: 4px;
+            border-radius: 4px;
+        }
+
+        /* ==========================================================================
+           3. CARD CONTAINER & 3D ENVIRONMENT
+           ========================================================================== */
+        .card-scene {
+            /* Creates the 3D space for the tilt effect */
+            perspective: 1200px;
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            /* Container queries allow all internal text/padding to scale proportionally */
+            container-type: inline-size;
+            container-name: card;
+            
+            /* Responsive sizing maintaining standard CR80 credit card aspect ratio */
+            width: 100%;
+            aspect-ratio: 85.6 / 54;
+            position: relative;
+            
+            /* Material rendering */
+            background: linear-gradient(135deg, var(--color-metallic-blue-light) 0%, var(--color-metallic-blue-dark) 100%);
+            border-radius: calc(var(--card-width-physical) * 0.037); /* ~3.18mm proportionally */
+            box-shadow: 
+                0 25px 50px -12px rgba(9, 23, 43, 0.5),
+                0 10px 20px -5px rgba(9, 23, 43, 0.3);
+            
+            /* Smooth return transition when mouse leaves */
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            transform-style: preserve-3d;
+            
+            /* Hide overflow for clean rounded corners */
+            overflow: hidden;
+            
+            /* Allow JS to track internal cursor position for dynamic lighting */
+            --light-x: 50%;
+            --light-y: 50%;
+        }
+
+        /* Thin lighter edge and structural overlay */
+        .card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            /* Inner top white line for edge highlight, inner bottom dark line for depth */
+            box-shadow: inset 0 1.5px 1px rgba(255, 255, 255, 0.4), 
+                        inset 0 -1.5px 1px rgba(0, 0, 0, 0.3);
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* Dynamic surface sheen responding to mouse movement */
+        .card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            background: radial-gradient(
+                circle at var(--light-x) var(--light-y),
+                rgba(255, 255, 255, 0.2) 0%,
+                transparent 60%
+            );
+            pointer-events: none;
+            z-index: 11;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .card-scene:hover .card::before {
+            opacity: 1; /* Show sheen only on hover */
+        }
+
+        /* ==========================================================================
+           4. INTERNAL CARD LAYOUT
+           ========================================================================== */
+        .card-content {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            padding: var(--spacing-lg);
+            position: relative;
+            z-index: 2; /* Sit above background, below sheen */
+            gap: var(--spacing-md);
+        }
+
+        /* Left Column: Identity */
+        .col-left {
+            flex: 1.1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            padding-right: var(--spacing-sm);
+        }
+
+        /* Right Column: Contact & Social */
+        .col-right {
+            flex: 0.9;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            border-left: 1px solid rgba(255, 255, 255, 0.15);
+            padding-left: var(--spacing-md);
+        }
+
+        /* ==========================================================================
+           5. PROFILE PHOTO & FALLBACK
+           ========================================================================== */
+        .photo-wrap {
+            width: 26cqi; /* Scales to roughly 22mm on standard print */
+            aspect-ratio: 1;
+            border-radius: 4.5cqi; /* Soft rounded square */
+            overflow: hidden;
+            background-color: var(--color-accent-dark);
+            border: 0.3cqi solid rgba(230, 216, 195, 0.4);
+            margin-bottom: var(--spacing-md);
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        .photo-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .photo-fallback {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--color-accent-dark);
+            color: var(--color-accent-beige);
+            font-size: 9cqi;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        /* ==========================================================================
+           6. TEXT STYLES & HIERARCHY
+           ========================================================================== */
+        .name {
+            font-size: 5cqi;
+            font-weight: 700;
+            color: var(--color-accent-beige);
+            line-height: 1.15;
+            margin-bottom: var(--spacing-sm);
+            margin-top: auto; /* Pushes text down slightly to balance */
+        }
+
+        .title {
+            font-size: 3.2cqi;
+            font-weight: 500;
+            color: var(--color-text-white);
+            line-height: 1.2;
+            margin-bottom: 0.5cqi;
+        }
+
+        .org {
+            font-size: 2.5cqi;
+            font-weight: 400;
+            color: var(--color-text-muted);
+            line-height: 1.2;
+        }
+
+        /* Contact Details */
+        .info-group {
+            margin-bottom: 2.5cqi;
+        }
+
+        .info-group:last-of-type {
+            margin-bottom: 0;
+        }
+
+        .info-label {
+            display: block;
+            font-size: 1.8cqi;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--color-accent-beige);
+            opacity: 0.8;
+            margin-bottom: 0.5cqi;
+        }
+
+        .info-val {
+            display: block;
+            font-size: 3cqi;
+            color: var(--color-text-white);
+            text-decoration: none;
+            line-height: 1.3;
+            word-wrap: break-word;
+            position: relative; /* For touch target */
+        }
+
+        /* ==========================================================================
+           7. INTERACTIVITY & MOBILE ACCESSIBILITY
+           ========================================================================== */
+        /* Ensure links meet minimum tap target size (44x44px) without breaking visual layout */
+        @media screen {
+            .touch-target::after {
+                content: '';
+                position: absolute;
+                top: 50%;
+                left: -10px;
+                right: -10px;
+                transform: translateY(-50%);
+                min-height: 44px;
+                z-index: 5;
+            }
+        }
+
+        /* Social Icons */
+        .socials {
+            display: flex;
+            gap: 2.5cqi;
+            align-items: center;
+            margin-top: auto; /* Push to bottom */
+        }
+
+        .social-link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-text-white);
+            transition: color 0.2s, transform 0.2s;
+            position: relative; /* For touch target */
+        }
+
+        .social-link svg {
+            width: 4.5cqi;
+            height: 4.5cqi;
+            fill: currentColor;
+            display: block;
+        }
+
+        .social-link:hover, .social-link:focus-visible {
+            color: var(--color-accent-beige);
+            transform: translateY(-10%);
+        }
+
+        /* Greyed out unavailable accounts */
+        .social-greyed {
+            color: rgba(255, 255, 255, 0.25);
+            cursor: not-allowed;
+        }
+
+        /* Print Button */
+        .print-btn {
+            background-color: var(--color-accent-dark);
+            color: var(--color-text-white);
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 500;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: background-color 0.2s, transform 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .print-btn:hover {
+            background-color: #122849;
+            transform: translateY(-2px);
+        }
+
+        /* ==========================================================================
+           8. PRINT QUALITY STYLES
+           ========================================================================== */
+        @media print {
+            /* Reset the page completely */
+            @page {
+                size: auto;
+                margin: 0; 
+            }
+            body {
+                background: none;
+                margin: 0;
+                padding: 0;
+                display: block;
+            }
+
+            /* Hide everything that is NOT the card */
+            body > *:not(.card-scene) {
+                display: none !important;
+            }
+
+            .card-scene {
+                perspective: none; /* Disable 3D */
+                margin: 0;
+                padding: 0;
+                max-width: none;
+                display: block;
+            }
+
+            /* Force exact physical dimensions and render background graphics */
+            .card {
+                width: var(--card-width-physical) !important;
+                height: var(--card-height-physical) !important;
+                margin: 0 !important;
+                transform: none !important;
+                box-shadow: none !important;
+                /* Essential for printing backgrounds in WebKit/Blink */
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                page-break-inside: avoid;
+            }
+
+            /* Remove screen-only effects */
+            .card::before, .card::after {
+                display: none !important;
+            }
+            .print-btn {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- MAIN CARD CONTAINER -->
+    <div class="card-scene" id="scene">
+        <article class="card" id="card">
+            <div class="card-content">
+                
+                <!-- LEFT COLUMN: Identity Details -->
+                <div class="col-left">
+                    <div class="photo-wrap">
+                        <!-- Image loads directly from provided URL. Error handler triggers fallback if it fails -->
+                        <img src="https://raw.githubusercontent.com/mdbody777/new-photo/main/Professional%20Hijab%20Portrait%20on%20White%20Background.png" 
+                             alt="Profile photo of Dina Mahmoud Ahmed Metwally" 
+                             class="photo-img"
+                             onerror="this.style.display='none'; document.getElementById('initials-fb').style.display='flex';" />
+                        <!-- Fallback circle with initials, hidden by default -->
+                        <div id="initials-fb" class="photo-fallback" style="display: none;" aria-hidden="true">DM</div>
+                    </div>
+                    
+                    <h1 class="name">Dina Mahmoud Ahmed Metwally</h1>
+                    <h2 class="title">Professor of Parasitology</h2>
+                    <h3 class="org">Zagazig University</h3>
+                </div>
+
+                <!-- RIGHT COLUMN: Contact & Socials -->
+                <div class="col-right">
+                    
+                    <div class="contact-wrap">
+                        <div class="info-group">
+                            <span class="info-label">Phone</span>
+                            <!-- touch-target class expands the clickable area for mobile -->
+                            <a href="https://wa.me/966544204679" class="info-val touch-target">+966 54 420 4679</a>
+                        </div>
+                        
+                        <div class="info-group">
+                            <span class="info-label">Email</span>
+                            <a href="mailto:mdbody7@yahoo.com" class="info-val touch-target">mdbody7@yahoo.com</a>
+                        </div>
+                        
+                        <div class="info-group">
+                            <span class="info-label">Location</span>
+                            <span class="info-val">Riyadh, Saudi Arabia</span>
+                        </div>
+                    </div>
+
+                    <!-- SOCIAL ICONS (Single Row) -->
+                    <div class="socials">
+                        <!-- LinkedIn (Linked) -->
+                        <a href="https://www.linkedin.com/in/dina-hassanin-58a64363?utm_source=share_via&utm_content=profile&utm_medium=member_ios" 
+                           target="_blank" rel="noopener noreferrer" 
+                           class="social-link touch-target" aria-label="LinkedIn">
+                            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+                            </svg>
+                        </a>
+                        
+                        <!-- Instagram (Linked) -->
+                        <a href="https://www.instagram.com/deemaamarketing?stkn=eHVxZ25icnU0ZHlq&utm_source=qr" 
+                           target="_blank" rel="noopener noreferrer" 
+                           class="social-link touch-target" aria-label="Instagram">
+                            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                            </svg>
+                        </a>
+                        
+                        <!-- Facebook (Linked) -->
+                        <a href="https://www.facebook.com/share/1Exbn8tvQa/?mibextid=wwXIfr" 
+                           target="_blank" rel="noopener noreferrer" 
+                           class="social-link touch-target" aria-label="Facebook">
+                            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z"/>
+                            </svg>
+                        </a>
+                        
+                        <!-- TikTok (Greyed out - no link provided) -->
+                        <span class="social-link social-greyed" aria-label="TikTok (Unavailable)">
+                            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93v7.2c0 1.95-.59 3.93-1.85 5.4-1.57 1.83-4.04 2.82-6.43 2.51-2.43-.31-4.57-1.81-5.7-3.95-1.07-2.02-1.18-4.54-.25-6.64 1.05-2.38 3.39-4.14 5.96-4.47 1.1-.15 2.22-.05 3.28.27v4.11c-.72-.34-1.56-.47-2.36-.31-1.07.21-2.07.97-2.52 1.96-.4.88-.42 1.95-.03 2.85.45 1.04 1.46 1.86 2.59 2.05 1.25.21 2.61-.09 3.52-.96.88-.84 1.34-2.09 1.34-3.32v-15.08z"/>
+                            </svg>
+                        </span>
+                    </div>
+
+                </div>
+            </div>
+        </article>
+    </div>
+
+    <!-- PRINT BUTTON -->
+    <button class="print-btn" onclick="window.print()" aria-label="Print Card">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 6 2 18 2 18 9"></polyline>
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+            <rect x="6" y="14" width="12" height="8"></rect>
+        </svg>
+        Print Card
+    </button>
+
+    <!-- JAVASCRIPT: 3D Mouse interactions -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const scene = document.getElementById('scene');
+            const card = document.getElementById('card');
+            
+            // Respect user's system preferences for motion
+            const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+            scene.addEventListener('mousemove', (e) => {
+                if (prefersReducedMotion.matches) return;
+
+                const rect = card.getBoundingClientRect();
+                
+                // Calculate cursor position relative to the card (0 to 1)
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                // Calculate position relative to the center of the card
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                
+                // Calculate rotation (max 8 degrees tilt for readability)
+                const rotateX = ((y - centerY) / centerY) * -8;
+                const rotateY = ((x - centerX) / centerX) * 8;
+                
+                // Apply 3D rotation
+                card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+                
+                // Move the lighting reflection (sheen) with the mouse
+                const lightX = (x / rect.width) * 100;
+                const lightY = (y / rect.height) * 100;
+                card.style.setProperty('--light-x', `${lightX}%`);
+                card.style.setProperty('--light-y', `${lightY}%`);
+            });
+
+            // Smoothly settle the card back to flat when mouse leaves
+            scene.addEventListener('mouseleave', () => {
+                if (prefersReducedMotion.matches) return;
+                card.style.transform = `rotateX(0) rotateY(0)`;
+                // Sheen fades out automatically via CSS hover state
+            });
+        });
+    </script>
+</body>
+</html>
